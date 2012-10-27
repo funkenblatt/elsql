@@ -10,7 +10,7 @@
 (defun sql-maybe-paren (x)
   (if (and (consp x) 
            (memq (car x) 
-                 '(query < > + - * = != || or and not exists is in >= <=))) 
+                 '(query ilike like < > + - * = != || or and not exists is in >= <=))) 
       (str "(" (sql-expr x) ")")
     (sql-expr x)))
 
@@ -27,7 +27,7 @@
 
 (defun func-to-sql (l)
   (case (car l)
-    ((< > + - * = != || or and not exists is in >= <=) 
+    ((/ < > + - * = != || or and not exists is in >= <= like ilike ~) 
      (if (and (= (length l) 2)
               (memq (car l) '(not - exists)))
 	  (str (car l) " (" (sql-expr (cadr l)) ")")
