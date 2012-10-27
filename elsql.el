@@ -1,3 +1,33 @@
+(require 'cl)
+
+(defun str (&rest objs)
+  (apply 'concat (mapcar (lambda (obj) (format "%s" obj)) objs)))
+
+(defmacro sql-interp (&rest templates)
+  (with-temp-buffer
+    (dolist (s templates) (insert s))
+    (let ((last-point (point-min)) exprs)
+      (goto-char (point-min))
+      (while (re-search-forward "#," nil t)
+	(push (buffer-substring last-point (match-beginning 0)) exprs)
+	(let ((expr (read (current-buffer))))
+	  (push (if (vectorp expr) (aref expr 0) expr) exprs)
+	  (setf last-point (point))))
+      (push (buffer-substring (point) (point-max)) exprs)
+      (cons 'str (nreverse exprs)))))
+
+(defun strjoin (sep strings)
+  (let (out) 
+    (dolist (i strings (apply 'concat (nreverse (cdr out))))
+      (push i out) (push sep out))))
+
+(defmacro chain (&rest exprs)
+  `(let* ((_ ,(car exprs))
+          ,@(mapcar (lambda (x)
+                      (if (symbolp x) `(_ (,x _)) `(_ ,x)))
+                    (cdr exprs)))
+     _))
+
 (defun sql-expr (datum)
   (if (not datum) 
       "NULL"
@@ -14,14 +44,16 @@
       (str "(" (sql-expr x) ")")
     (sql-expr x)))
 
+(defun sql-case-clause (x)
+  (if (eq (car x) 'else)
+      (str "else " (sql-expr (cadr x)))
+    (str "when " (sql-expr (car x)) 
+         " then " (sql-expr (cadr x)))))
+
 (defun sql-case (l)
-  (do-wad
-   (sublist-n (cdr l) 2)
-   (lc (if (eq (car x) 'else)
-	   (str "else " (sql-expr (cadr x)))
-	 (str "when " (sql-expr (car x)) 
-	      " then " (sql-expr (cadr x))))
-       x _)
+  (chain
+   (cdr l)
+   (mapcar 'sql-case-clause _)
    (strjoin " " _)
    (str "case " _ " end")))
 
@@ -53,7 +85,7 @@
 
 (defun sql-join (join-type a b condition &optional right-condition)
   (if right-condition
-      (interp "#,(sql-maybe-paren a) #,(de-hyphen join-type) #,(sql-maybe-paren b) "
+      (sql-interp "#,(sql-maybe-paren a) #,(de-hyphen join-type) #,(sql-maybe-paren b) "
 	      "ON #,[a].#,condition = #,[b].#,right-condition")
     (str (sql-maybe-paren a) " " (de-hyphen join-type) " " (sql-maybe-paren b)
 	 " on " (sql-expr condition))))
@@ -69,12 +101,12 @@
   (strjoin ", " (mapcar 'sql-expr exprs)))
 
 (defun sql-maybe-clause (query key clause fun)
-  (do-wad
+  (chain
    (assoc-default key query)
    (if _ (str " " clause " " (funcall fun _)) "")))
 
 (defun sql-with (query)
-  (do-wad
+  (chain
    (loop for q in (butlast (cdr query))
          collect (str (car q) " as (" (render-query (cdr q)) ")"))
    (strjoin ", " _)
@@ -92,8 +124,7 @@
     (render-select query)))
 
 (defun render-select (query)
-  (if (symbolp (car query)) (push (list 'from (pop query)) query)) 
-  (let* ((select (do-wad (assoc-default 'select query)
+  (let* ((select (chain (assoc-default 'select query)
 			 (if _ (sql-comma-joined _) '*)))
          (from (sql-maybe-clause query 'from "from" 'sql-comma-joined))
          (where (sql-maybe-clause 
@@ -106,4 +137,6 @@
          (offset (sql-maybe-clause query 'offset "offset" 'sql-comma-joined))
          (limit (sql-maybe-clause query 'limit "limit" 'sql-comma-joined))
          (group (sql-maybe-clause query 'group "group by" 'sql-comma-joined)))
-    (interp "select #,[select]#,[from]#,[where]#,[group]#,[having]#,[order]#,[limit]#,[offset]")))
+    (sql-interp "select #,[select]#,[from]#,[where]#,[group]#,[having]#,[order]#,[limit]#,[offset]")))
+
+(provide 'elsql)
