@@ -51,9 +51,12 @@
 (defun de-hyphen (s)
   (replace-regexp-in-string "-" " " (str s)))
 
-(defun sql-join (join-type a b condition)
-  (str (sql-maybe-paren a) " " (de-hyphen join-type) " " (sql-maybe-paren b)
-       " on " (sql-expr condition)))
+(defun sql-join (join-type a b condition &optional right-condition)
+  (if right-condition
+      (interp "#,(sql-maybe-paren a) #,(de-hyphen join-type) #,(sql-maybe-paren b) "
+	      "ON #,[a].#,condition = #,[b].#,right-condition")
+    (str (sql-maybe-paren a) " " (de-hyphen join-type) " " (sql-maybe-paren b)
+	 " on " (sql-expr condition))))
 
 (defun str-to-sql (s)
   (str "E'" (replace-regexp-in-string "'" "''" s) "'"))
