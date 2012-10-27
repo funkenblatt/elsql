@@ -99,8 +99,11 @@
          (where (sql-maybe-clause 
                  query 'where "where" 
                  (lambda (x) (sql-expr (cons 'and x)))))
+	 (having (sql-maybe-clause
+		  query 'having "having"
+		  (lambda (x) (sql-expr (cons 'and x)))))
          (order (sql-maybe-clause query 'order "order by" 'sql-comma-joined))
          (offset (sql-maybe-clause query 'offset "offset" 'sql-comma-joined))
          (limit (sql-maybe-clause query 'limit "limit" 'sql-comma-joined))
          (group (sql-maybe-clause query 'group "group by" 'sql-comma-joined)))
-    (interp "select #,[select]#,[from]#,[where]#,[group]#,[order]#,[limit]#,[offset]")))
+    (interp "select #,[select]#,[from]#,[where]#,[group]#,[having]#,[order]#,[limit]#,[offset]")))
