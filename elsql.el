@@ -14,6 +14,17 @@
       (str "(" (sql-expr x) ")")
     (sql-expr x)))
 
+(defun sql-case (l)
+  (do-wad
+   (sublist-n (cdr l) 2)
+   (lc (if (eq (car x) 'else)
+	   (str "else " (sql-expr (cadr x)))
+	 (str "when " (sql-expr (car x)) 
+	      " then " (sql-expr (cadr x))))
+       x _)
+   (strjoin " " _)
+   (str "case " _ " end")))
+
 (defun func-to-sql (l)
   (case (car l)
     ((< > + - * = != || or and not exists is in >= <=) 
@@ -23,8 +34,14 @@
        (strjoin 
 	(str " " (car l) " ")
 	(mapcar 'sql-maybe-paren (cdr l)))))
+    (case (sql-case l))
     ((join left-join right-join full-outer-join) (apply 'sql-join l)) 
     (query (render-query (cdr l)))
+    (over (str (sql-expr (cadr l))
+	       " OVER ("
+	       (strjoin " " (mapcar 'sql-expr (cddr l)))
+	       ")"))
+    (cast (str (sql-maybe-paren (cadr l)) "::" (caddr l)))
     (desc (str (sql-expr (cadr l)) " desc"))
     (as (str (sql-maybe-paren (cadr l)) " as " (caddr l)))
     (quote (str "(" (sql-comma-joined (cadr l)) ")"))
