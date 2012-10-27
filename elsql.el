@@ -59,7 +59,11 @@
 	 " on " (sql-expr condition))))
 
 (defun str-to-sql (s)
-  (str "E'" (replace-regexp-in-string "'" "''" s) "'"))
+  (str "E'" 
+       (replace-regexp-in-string
+	"\n" "\\n"
+	(replace-regexp-in-string "'" "''" s) nil t)
+       "'"))
 
 (defun sql-comma-joined (exprs)
   (strjoin ", " (mapcar 'sql-expr exprs)))
@@ -80,6 +84,7 @@
   (if (symbolp (car query))
       (case (car query)
 	(with (sql-with query))
+	(values (str "values " (sql-comma-joined (cdr query))))
 	((union union-all) (strjoin 
 			    (str " " (de-hyphen (car query)) " ")
 			    (mapcar 'render-query (cdr query))))
