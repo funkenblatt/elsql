@@ -120,7 +120,7 @@
 	((union union-all) (strjoin 
 			    (str " " (de-hyphen (car query)) " ")
 			    (mapcar 'render-query (cdr query))))
-	(otherwise (render-select query)))
+	(otherwise (render-select (cdr query))))
     (render-select query)))
 
 (defun render-select (query)
