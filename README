@@ -1,0 +1,67 @@
+elsql.el
+
+This mode is used for writing SQL queries in s-expression form.
+The primary entry point is the function `render-query'.
+
+Queries are (mostly) alists:
+
+  (render-query '((from foo)))
+  => "select * from foo"
+
+  (render-query '((from foo) (where (> x 3))))
+  => "select * from foo where (x > 3)"
+
+  (render-query '((from foo)
+                  (where (> x 3) (~ asdf ".*foo$"))
+                  (select (as y blargh) x)))
+  => "select y as blargh, x from foo where (x > 3) and asdf ~ E'.*foo$'"
+
+  (render-query '((from foo) (group (floor (/ x 3)))
+                  (select (floor (/ x 3)) (min y))))
+  => "select floor(x / 3), min(y) from foo group by floor(x / 3)"
+
+
+You can do subqueries as well:
+
+  (render-query '((from foo)
+                  (where (in bar_id 
+                             (query (from bar) (select id))))))
+  => "select * from foo where (bar_id in (select id from bar))"
+
+  (render-query '((from (as (query values [0 "a"] [1 "b"]) foovalues))
+                  (select (|| (cast column1 text) column2))))
+  => "select column1::text || column2 from (values (0, E'a'), (1, E'b')) as foovalues"
+
+
+As this library is fairly postgresql specific, it also has support
+for the WITH statement:
+
+  (render-query
+   '(with
+     (foo_sample (from foo) (order (random)) (limit 1000))
+     (bar_sample (from (join bar foo_sample (= bar.foo_id foo.id))))
+     (bar_counts (from bar_sample) (group smeg) (select smeg (as (count *) c)))
+
+     ((from bar_counts) (where (> c 100)) (order (desc c)))))
+  => "with foo_sample as (select * from foo order by random() limit 1000), 
+           bar_sample as (select * from bar join foo_sample on bar.foo_id = foo.id), 
+           bar_counts as (select smeg, count(*) as c from bar_sample group by smeg)
+           select * from bar_counts where (c > 100) order by c desc"
+
+As queries are alists, it's easy to extract info about or generate queries
+programatically, at least before they've been rendered.
+
+  (assoc-default 'select
+                 '((from foo bar baz)
+                   (select x y z)))
+  => (x y z)
+
+  (defun find-foo (foo-ids)
+    `((from foo) (where (in id ,foo-ids))))
+
+  (render-query (find-foo [10 20 30]))
+  => "select * from foo where (id in (10, 20, 30))"
+
+Note: at the moment the library does not handle data-definition language stuff
+or insertion/update stuff at all.
+
