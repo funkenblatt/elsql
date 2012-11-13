@@ -66,6 +66,7 @@
        (strjoin 
 	(str " " (car l) " ")
 	(mapcar 'sql-maybe-paren (cdr l)))))
+    (interval (str "interval " (sql-expr (cadr l))))
     (case (sql-case l))
     ((join left-join right-join full-outer-join) (apply 'sql-join l)) 
     (query (render-query (cdr l)))
@@ -117,9 +118,10 @@
       (case (car query)
 	(with (sql-with query))
 	(values (str "values " (sql-comma-joined (cdr query))))
-	((union union-all) (strjoin 
-			    (str " " (de-hyphen (car query)) " ")
-			    (mapcar 'render-query (cdr query))))
+	((union union-all intersect) 
+         (strjoin 
+          (str " " (de-hyphen (car query)) " ")
+          (mapcar 'render-query (cdr query))))
 	(otherwise (render-select (cdr query))))
     (render-select query)))
 
