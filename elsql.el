@@ -70,6 +70,7 @@
     (case (sql-case l))
     ((join left-join right-join full-outer-join) (apply 'sql-join l)) 
     (query (render-query (cdr l)))
+    (distinct (str "DISTINCT " (sql-expr (cadr l))))
     (over (str (sql-expr (cadr l))
 	       " OVER ("
 	       (strjoin " " (mapcar 'sql-expr (cddr l)))
