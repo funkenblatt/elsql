@@ -75,7 +75,10 @@
 	       " OVER ("
 	       (strjoin " " (mapcar 'sql-expr (cddr l)))
 	       ")"))
+    (between (str (sql-expr (cadr l)) " BETWEEN "
+                  (sql-expr (caddr l)) " AND " (sql-expr (cadddr l))))
     (cast (str (sql-maybe-paren (cadr l)) "::" (caddr l)))
+    (array (str "ARRAY[" (sql-comma-joined (cdr l)) "]"))
     (desc (str (sql-expr (cadr l)) " desc"))
     (as (str (sql-maybe-paren (cadr l)) " as " (caddr l)))
     (quote (str "(" (sql-comma-joined (cadr l)) ")"))
