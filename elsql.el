@@ -67,6 +67,7 @@
 	(str " " (car l) " ")
 	(mapcar 'sql-maybe-paren (cdr l)))))
     (interval (str "interval " (sql-expr (cadr l))))
+    (aref (str "(" (sql-expr (cadr l)) ")" "[" (sql-expr (caddr l)) "]"))
     (case (sql-case l))
     ((join left-join right-join full-outer-join) (apply 'sql-join l)) 
     (query (render-query (cdr l)))
@@ -144,5 +145,14 @@
          (limit (sql-maybe-clause query 'limit "limit" 'sql-comma-joined))
          (group (sql-maybe-clause query 'group "group by" 'sql-comma-joined)))
     (sql-interp "select #,[select]#,[from]#,[where]#,[group]#,[having]#,[order]#,[limit]#,[offset]")))
+
+(defun render-update (table clauses)
+  (let* ((table (sql-expr table))
+         (assigns (sql-maybe-clause clauses 'set "set" 'sql-comma-joined))
+         (from (sql-maybe-clause clauses 'from "from" 'sql-comma-joined))
+         (where (sql-maybe-clause 
+                 clauses 'where "where"
+                 (lambda (x) (sql-expr (cons 'and x))))))
+    (sql-interp "update #,[table]#,[assigns]#,[from]#,[where]")))
 
 (provide 'elsql)
