@@ -155,4 +155,10 @@
                  (lambda (x) (sql-expr (cons 'and x))))))
     (sql-interp "update #,[table]#,[assigns]#,[from]#,[where]")))
 
+(defun render-delete (table clauses)
+  (let ((where (sql-maybe-clause 
+                clauses 'where "where" 
+                (lambda (x) (sql-expr (cons 'and x))))))
+    (sql-interp "delete from #,[(sql-expr table)]#,[where]")))
+
 (provide 'elsql)
