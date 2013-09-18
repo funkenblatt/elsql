@@ -59,7 +59,7 @@
 
 (defun func-to-sql (l)
   (case (car l)
-    ((/ < > + - * = != || or and not exists is in >= <= like ilike ~) 
+    ((/ < > + - * = != || or and not exists is in >= <= like ilike ~ %) 
      (if (and (= (length l) 2)
               (memq (car l) '(not - exists)))
 	  (str (car l) " (" (sql-expr (cadr l)) ")")
