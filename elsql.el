@@ -69,8 +69,9 @@
     (interval (str "interval " (sql-expr (cadr l))))
     (aref (str "(" (sql-expr (cadr l)) ")" "[" (sql-expr (caddr l)) "]"))
     (case (sql-case l))
+    (.. (str (cadr l) "." (caddr l)))
     ((join left-join right-join full-outer-join) (apply 'sql-join l)) 
-    (query (render-query (cdr l)))
+    (query (str "(" (render-query (cdr l)) ")"))
     (distinct (str "DISTINCT " (sql-expr (cadr l))))
     (over (str (sql-expr (cadr l))
 	       " OVER ("
